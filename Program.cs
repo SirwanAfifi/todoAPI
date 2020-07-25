@@ -1,58 +1,30 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
-using todoAPI.Models;
+using Microsoft.Extensions.DependencyInjection;
+using todoAPI.Controllers;
+using todoAPI.Services;
 
 namespace todoAPI
 {
     class Program
     {
-        private static readonly TodoData db = new TodoData();
         static async Task Main(string[] args)
         {
+            var builder = WebApplication.CreateBuilder(args);
+            builder.Services.AddTransient<TodoController>();
+            builder.Services.AddTransient<ITodoService, TodoService>();
+
+            var serviceProvider = builder.Services.BuildServiceProvider();
+            var todoController = serviceProvider.GetService<TodoController>();
+
             var app = WebApplication.Create(args);
 
-            app.MapGet("/", GetTodos);
-            app.MapPost("/api/todos", CreateTodo);
-            app.MapPost("/api/todos/{id}", ToggleTodo);
-            app.MapDelete("/api/todos/{id}", DeleteTodo);
+            app.MapGet("/", todoController.GetTodos);
+            app.MapPost("/api/todos", todoController.CreateTodo);
+            app.MapPost("/api/todos/{id}", todoController.ToggleTodo);
+            app.MapDelete("/api/todos/{id}", todoController.DeleteTodo);
 
             await app.RunAsync();
-        }
-
-        static async Task GetTodos(HttpContext http)
-        {
-            var todos = db.GetAllToDoItmes();
-            await http.Response.WriteJsonAsync(todos);
-        }
-
-        static async Task CreateTodo(HttpContext http)
-        {
-            var todo = await http.Request.ReadJsonAsync<Todo>();
-            db.AddTodo(todo);
-            http.Response.StatusCode = 204;
-        }
-
-        static async Task ToggleTodo(HttpContext http)
-        {
-            if (!http.Request.RouteValues.TryGet("id", out int id))
-            {
-                http.Response.StatusCode = 400;
-                return;
-            }
-            db.ToggleTodo(id);
-            http.Response.StatusCode = 204;
-        }
-
-        static async Task DeleteTodo(HttpContext http)
-        {
-            if (!http.Request.RouteValues.TryGet("id", out int id))
-            {
-                http.Response.StatusCode = 400;
-                return;
-            }
-            db.DeleteTodo(id);
-            http.Response.StatusCode = 204;
         }
     }
 }
