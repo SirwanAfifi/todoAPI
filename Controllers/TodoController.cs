@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using todoAPI.Models;
 using todoAPI.Services;
 
@@ -8,45 +9,40 @@ namespace todoAPI.Controllers
     public class TodoController
     {
         private readonly ITodoService _todoService;
-
-        public TodoController(ITodoService todoService)
+        private readonly IHttpContextAccessor _accessor;
+        public TodoController(ITodoService todoService, IHttpContextAccessor accessor)
         {
             _todoService = todoService;
+            _accessor = accessor;
         }
 
-        public async Task GetTodos(HttpContext http)
+        [HttpGet("/todos")]
+        public async Task GetTodos()
         {
             var todos = _todoService.GetAllToDoItmes();
-            await http.Response.WriteJsonAsync(todos);
+            await _accessor.HttpContext.Response.WriteJsonAsync(todos);
         }
 
-        public async Task CreateTodo(HttpContext http)
+        [HttpPost("/todos")]
+        public async Task CreateTodo()
         {
-            var todo = await http.Request.ReadJsonAsync<Todo>();
+            var todo = await _accessor.HttpContext.Request.ReadJsonAsync<Todo>();
             _todoService.AddTodo(todo);
-            http.Response.StatusCode = 204;
+            _accessor.HttpContext.Response.StatusCode = 204;
         }
 
-        public async Task ToggleTodo(HttpContext http)
+        [HttpPost("/todos/{id}")]
+        public async Task ToggleTodo(int id)
         {
-            if (!http.Request.RouteValues.TryGet("id", out int id))
-            {
-                http.Response.StatusCode = 400;
-                return;
-            }
             _todoService.ToggleTodo(id);
-            http.Response.StatusCode = 204;
+            _accessor.HttpContext.Response.StatusCode = 204;
         }
 
-        public async Task DeleteTodo(HttpContext http)
+        [HttpDelete("/todos/{id}")]
+        public async Task DeleteTodo(int id)
         {
-            if (!http.Request.RouteValues.TryGet("id", out int id))
-            {
-                http.Response.StatusCode = 400;
-                return;
-            }
             _todoService.DeleteTodo(id);
-            http.Response.StatusCode = 204;
+            _accessor.HttpContext.Response.StatusCode = 204;
         }
     }
 }
